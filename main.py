@@ -1,5 +1,6 @@
 import argparse
 from gmm import GaussianMixtureModel
+from mdn import MixtureDensityNetwork
 import datetime as dt
 import pandas as pd
 
@@ -57,7 +58,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--basepath', default='/home/ryan/Desktop/') # raw data path
     parser.add_argument('--data', default='data.csv') # already preprocessed data
-    parser.add_argument('--model', choices=['gmm'], default='gmm')
+    parser.add_argument('--model', choices=['gmm', 'mdn'], default='gmm')
     parser.add_argument('--sample', default = None, type=int)
 
     args = parser.parse_args() 
@@ -72,4 +73,8 @@ if __name__ == '__main__':
         model.fit(pitches)
         loglike = model.log_likelihood(pitches)
         print(loglike)
+
+    elif args.model == 'mdn':
+        model = MixtureDensityNetwork()
+        model.fit(pitches)
 
