@@ -22,7 +22,6 @@ class GaussianMixtureModel:
         self.pitchers = list(pcounts[pcounts > self.min_pitches].index) + [0]
         pitches['pitcher_id'] = pitches.pitcher_id.map(lambda p: p if p in self.pitchers else 0)
         for pid, group in pitches.groupby('pitcher_id'):
-            print(pid)
             probas = group.type.value_counts(normalize=True)
             self.models[pid] = {}
             for ptype, sample in group.groupby('type'):
@@ -35,6 +34,7 @@ class GaussianMixtureModel:
         return model
         
     def log_likelihood(self, pitches):
+        # note: this mutates data frame
         pitches['pitcher_id'] = pitches.pitcher_id.map(lambda p: p if p in self.pitchers else 0)
         loglike = 0.0
         for pid, group in pitches.groupby('pitcher_id'):
@@ -45,3 +45,17 @@ class GaussianMixtureModel:
                 else:
                     return np.inf
         return loglike / pitches.shape[0]
+
+    def ptype_log_likelihood(self, pitches):
+        pitches['pitcher_id'] = pitches.pitcher_id.map(lambda p: p if p in self.pitchers else 0)
+        loglike = 0.0
+        for pid, group in pitches.groupby('pitcher_id'):
+            for ptype, sample in group.groupby('type'):
+                if ptype in self.models[pid]:
+                    p, gmm = self.models[pid][ptype]
+                    loglike += len(sample) * np.log(p)
+                else:
+                    return np.inf
+        return loglike / pitches.shape[0]
+
+

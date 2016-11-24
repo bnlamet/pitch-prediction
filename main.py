@@ -60,21 +60,30 @@ if __name__ == '__main__':
     parser.add_argument('--data', default='data.csv') # already preprocessed data
     parser.add_argument('--model', choices=['gmm', 'mdn'], default='gmm')
     parser.add_argument('--sample', default = None, type=int)
+    parser.add_argument('--seed', type = int, default = None)
+    parser.add_argument('--predict', choices=['ptype', 'ploc', 'both'], default='both')
 
     args = parser.parse_args() 
 
     pitches = pd.read_csv(args.data) if args.data else load_data(args.basepath)
    
     if args.sample: 
-        pitches = pitches.sample(args.sample)
+        pitches = pitches.sample(args.sample, random_state=args.seed)
  
     if args.model == 'gmm':
         model = GaussianMixtureModel()
         model.fit(pitches)
-        loglike = model.log_likelihood(pitches)
-        print(loglike)
 
     elif args.model == 'mdn':
         model = MixtureDensityNetwork()
         model.fit(pitches)
 
+    if args.predict == 'ptype':
+        loglike = model.ptype_log_likelihood(pitches)
+    elif args.predict == 'ploc':
+        loglike = 'not implemented yet'
+    else:
+        loglike = model.log_likelihood(pitches)
+
+    print(loglike)
+        
