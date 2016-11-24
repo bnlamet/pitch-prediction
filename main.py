@@ -72,12 +72,10 @@ if __name__ == '__main__':
  
     if args.model == 'gmm':
         model = GaussianMixtureModel()
-        model.fit(pitches)
-
     elif args.model == 'mdn':
-        model = MixtureDensityNetwork()
-        model.fit(pitches)
+        model = MixtureDensityNetwork(dropout=0.5)
 
+    model.fit(pitches)
     if args.predict == 'ptype':
         loglike = model.ptype_log_likelihood(pitches)
     elif args.predict == 'ploc':
