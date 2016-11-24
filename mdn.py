@@ -21,7 +21,7 @@ class MixtureDensityNetwork:
         self.batch_size = batch_size
         self.iterations = iterations
         self.player_embedding = player_embedding
-        self.mixture_components = mixture_components
+        self.mixture_components = mixture_components 
         self.hidden_layers = hidden_layers
         self.dropout = dropout
 
@@ -51,12 +51,12 @@ class MixtureDensityNetwork:
         def create_variable(shape):
             return tf.Variable(tf.random_normal(shape, 0.0, 0.1))
 
-        b = [create_variable([self.hidden_layers[0]])]
+        b = [create_variable([self.hidden_layers[0]]) + 0.5]
         W = [tf.Variable(tf.zeros([in_dim, self.hidden_layers[0]]))] # why does only zeros work here?
         hidden = [tf.nn.dropout(tf.nn.relu(tf.matmul(input_layer, W[0]) + b[0]), keep_prob)]
         for i in range(1, len(self.hidden_layers)):
             W.append(create_variable([self.hidden_layers[i-1], self.hidden_layers[i]]))
-            b.append(create_variable([self.hidden_layers[i]]))
+            b.append(create_variable([self.hidden_layers[i]]) + 0.5)
             hidden.append(tf.nn.dropout(tf.nn.relu(tf.matmul(hidden[-1], W[-1]) + b[-1]), keep_prob))
        
         W.append(create_variable([self.hidden_layers[-1], self.n_types]))

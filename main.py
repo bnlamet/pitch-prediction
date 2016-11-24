@@ -3,6 +3,10 @@ from gmm import GaussianMixtureModel
 from mdn import MixtureDensityNetwork
 import datetime as dt
 import pandas as pd
+from sklearn.model_selection import train_test_split
+import sys
+import itertools
+import random
 
 def load_data(base):
     games = pd.read_csv(base + 'games.csv').sort_values(by='date')
@@ -54,6 +58,45 @@ def load_data(base):
 
     return pitches
 
+def gmm_hyperopt(train, test):
+    components = [4, 9, 16, 25, 36]
+    min_pitches = [0, 25, 100, 200]
+    hypers = list(itertools.product(components, min_pitches))
+    random.shuffle(hypers)
+    for hyper in hypers:
+        model = GaussianMixtureModel(components=hyper[0], min_pitches = hyper[1])
+        model.fit(train)
+        loglike = model.ptype_log_likelihood(test)
+        print(hyper[0], hyper[1], loglike)
+
+def mdn_hyperopt(train, test):
+    learning_rates = [0.001, 0.01, 0.1, 0.5]
+    batch_sizes = [100, 500, 1000, 5000]
+    player_embeddings = [10,20,30,40]
+    iterationss = [1000, 5000]
+    hidden_layerss = [[50], [75], [100], [100,50], [100,75], [100,75,50]]
+    dropouts = [0.25, 0.5, 0.75]
+    hypers = list(itertools.product(learning_rates, batch_sizes, player_embeddings, iterationss, hidden_layerss, dropouts))
+    random.shuffle(hypers)
+    print('Running Experiments')
+    for hyper in hypers:
+        learning_rate = hyper[0]
+        batch_size = hyper[1]
+        player_embedding = hyper[2]
+        iterations = hyper[3]
+        hidden_layers = hyper[4]
+        dropout = hyper[5]
+        model = MixtureDensityNetwork(learning_rate = learning_rate, 
+                                        batch_size = batch_size,
+                                        iterations = iterations,
+                                        player_embedding = player_embedding,
+                                        mixture_components = 9,
+                                        hidden_layers = hidden_layers,
+                                        dropout = dropout)
+        model.fit(train)
+        loglike = model.ptype_log_likelihood(test)
+        print(learning_rate, batch_size, iterations, player_embedding, hidden_layers, dropout, loglike)                     
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--basepath', default='/home/ryan/Desktop/') # raw data path
@@ -62,6 +105,7 @@ if __name__ == '__main__':
     parser.add_argument('--sample', default = None, type=int)
     parser.add_argument('--seed', type = int, default = None)
     parser.add_argument('--predict', choices=['ptype', 'ploc', 'both'], default='both')
+    parser.add_argument('--hyperparam_opt', action='store_true')
 
     args = parser.parse_args() 
 
@@ -69,6 +113,14 @@ if __name__ == '__main__':
    
     if args.sample: 
         pitches = pitches.sample(args.sample, random_state=args.seed)
+
+    if args.hyperparam_opt:
+        train, test = train_test_split(pitches)
+        if args.model == 'gmm': 
+            gmm_hyperopt(train, test)
+        if args.model == 'mdn':
+            mdn_hyperopt(train, test)
+        sys.exit()
  
     if args.model == 'gmm':
         model = GaussianMixtureModel()
@@ -84,4 +136,5 @@ if __name__ == '__main__':
         loglike = model.log_likelihood(pitches)
 
     print(loglike)
-        
+       
+ 
