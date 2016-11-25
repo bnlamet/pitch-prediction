@@ -7,18 +7,19 @@ import sys
 import tensorflow as tf
 from tensorflow.contrib import learn
 from tensorflow.contrib import layers
+import progressbar
 
 class CategoricalNeuralNetwork:
 
     def __init__(self, learning_rate = 0.1, 
                         batch_size = 500, 
-                        iterations = 5000,
+                        sweeps = 50,
                         player_embedding = 30,
                         hidden_layers = [75],
                         dropout = 0.0):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
-        self.iterations = iterations
+        self.sweeps = sweeps
         self.player_embedding = player_embedding
         self.hidden_layers = hidden_layers
         self.dropout = dropout
@@ -108,16 +109,25 @@ class CategoricalNeuralNetwork:
         type_batch = self.network['type_batch']
         train_step = self.network['train_step']
         keep_prob = self.network['keep_prob']
-        sess0 = self.network['sess']
+        sess = self.network['sess']
 
-        for i in range(self.iterations):
-            idx = np.random.randint(0, self.pitches.shape[0], self.batch_size)
-            input_data = {  cat_batch : self.cat_data[idx,:-1], 
-                            real_batch : self.real_data[idx],  
-                            type_batch : self.cat_data[idx,-1],
-                            keep_prob : 1 - self.dropout }
-            sess0.run(train_step, feed_dict = input_data)
-        return None
+        bar = progressbar.ProgressBar(maxval=self.sweeps, \
+                widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+        bar.start()
+    
+        for i in range(self.sweeps):
+            bar.update(i+1)
+            perm = np.random.permutation(self.pitches.shape[0])
+            cat_data = self.cat_data[perm]
+            real_data = self.real_data[perm]
+            for start in range(0, len(perm) - self.batch_size, self.batch_size):
+                end = start + self.batch_size
+                input_data = {  cat_batch : cat_data[start:end,:-1], 
+                                real_batch : real_data[start:end],  
+                                type_batch : cat_data[start:end,-1],
+                                keep_prob : 1 - self.dropout }
+                sess.run(train_step, feed_dict = input_data)
+        bar.finish()
 
     def log_likelihood(self, pitches):
         cat_data = np.array(list(self.prep.transform(pitches[self.cat_features])))

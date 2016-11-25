@@ -74,17 +74,17 @@ def model1_hyperopt(train, test):
 def model2_hyperopt(train, test):
     learning_rates = [0.1, 0.5]
     batch_sizes = [1000, 5000, 10000]
-    player_embeddings = [10, 20,30,40]
-    iterationss = [5000, 10000, 20000]
+    player_embeddings = [10, 20, 30, 40]
+    sweepss = [50, 100, 250, 500]
     hidden_layerss = [[50], [75], [100], [100,50], [100,75], [100,75,50]]
     dropouts = [0.1, 0.2, 0.3, 0.4, 0.5]
-    hypers = list(itertools.product(learning_rates, batch_sizes, player_embeddings, iterationss, hidden_layerss, dropouts))
+    hypers = list(itertools.product(learning_rates, batch_sizes, player_embeddings, sweeps, hidden_layerss, dropouts))
     random.shuffle(hypers)
     print('Running Experiments')
     for hyper in hypers:
         model = CategoricalNeuralNetwork(learning_rate = hyper[0], 
                                             batch_size = hyper[1],
-                                            iterations = hyper[3],
+                                            sweeps = hyper[3],
                                             player_embedding = hyper[2],
                                             hidden_layers = hyper[4],
                                             dropout = hyper[5])
@@ -109,8 +109,9 @@ if __name__ == '__main__':
     if args.sample: 
         pitches = pitches.sample(args.sample, random_state=args.seed)
 
+    train, test = train_test_split(pitches, random_state=args.seed)
+
     if args.gridsearch:
-        train, test = train_test_split(pitches, random_state=args.seed)
         if args.model == 'model1': 
             model1_hyperopt(train, test)
         if args.model == 'model2':
@@ -124,13 +125,13 @@ if __name__ == '__main__':
             model = GaussianMixtureModel()
     elif args.model == 'model2':
         if args.predict == 'ptype':
-            model = CategoricalNeuralNetwork()
+            model = CategoricalNeuralNetwork(learning_rate = 0.1, batch_size = 1000, sweeps=100, player_embedding = 30, hidden_layers = [100, 75, 50], dropout = 0.1)
         elif args.predict == 'ploc':
             print('not implemented yet')    
             sys.exit()
 
-    model.fit(pitches)
-    loglike = model.log_likelihood(pitches)
+    model.fit(train)
+    loglike = model.log_likelihood(test)
     print(loglike)
        
  
