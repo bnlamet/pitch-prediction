@@ -1,6 +1,8 @@
 import argparse
-from gmm import GaussianMixtureModel
-from mdn import MixtureDensityNetwork
+from model1 import SimpleCategorical, GaussianMixtureModel
+from model2 import CategoricalNeuralNetwork
+#from gmm import GaussianMixtureModel
+#from mdn import MixtureDensityNetwork
 import datetime as dt
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -58,54 +60,47 @@ def load_data(base):
 
     return pitches
 
-def gmm_hyperopt(train, test):
+def model1_hyperopt(train, test):
     components = [4, 9, 16, 25, 36]
-    min_pitches = [0, 25, 100, 200]
-    hypers = list(itertools.product(components, min_pitches))
+    alphas = [1.0, 2.0, 4.0, 8.0, 16.0, 100000.0]
+    hypers = list(itertools.product(alphas))
     random.shuffle(hypers)
     for hyper in hypers:
-        model = GaussianMixtureModel(components=hyper[0], min_pitches = hyper[1])
+        model = SimpleCategorical(alpha = hyper[0])
         model.fit(train)
-        loglike = model.ptype_log_likelihood(test)
-        print(hyper[0], hyper[1], loglike)
+        loglike = model.log_likelihood(test)
+        print(hyper, loglike)
 
-def mdn_hyperopt(train, test):
-    learning_rates = [0.001, 0.01, 0.1, 0.5]
-    batch_sizes = [100, 500, 1000, 5000]
-    player_embeddings = [10,20,30,40]
-    iterationss = [1000, 5000]
+def model2_hyperopt(train, test):
+    learning_rates = [0.1, 0.5]
+    batch_sizes = [1000, 5000, 10000]
+    player_embeddings = [10, 20,30,40]
+    iterationss = [5000, 10000, 20000]
     hidden_layerss = [[50], [75], [100], [100,50], [100,75], [100,75,50]]
-    dropouts = [0.25, 0.5, 0.75]
+    dropouts = [0.1, 0.2, 0.3, 0.4, 0.5]
     hypers = list(itertools.product(learning_rates, batch_sizes, player_embeddings, iterationss, hidden_layerss, dropouts))
     random.shuffle(hypers)
     print('Running Experiments')
     for hyper in hypers:
-        learning_rate = hyper[0]
-        batch_size = hyper[1]
-        player_embedding = hyper[2]
-        iterations = hyper[3]
-        hidden_layers = hyper[4]
-        dropout = hyper[5]
-        model = MixtureDensityNetwork(learning_rate = learning_rate, 
-                                        batch_size = batch_size,
-                                        iterations = iterations,
-                                        player_embedding = player_embedding,
-                                        mixture_components = 9,
-                                        hidden_layers = hidden_layers,
-                                        dropout = dropout)
+        model = CategoricalNeuralNetwork(learning_rate = hyper[0], 
+                                            batch_size = hyper[1],
+                                            iterations = hyper[3],
+                                            player_embedding = hyper[2],
+                                            hidden_layers = hyper[4],
+                                            dropout = hyper[5])
         model.fit(train)
-        loglike = model.ptype_log_likelihood(test)
-        print(learning_rate, batch_size, iterations, player_embedding, hidden_layers, dropout, loglike)                     
+        loglike = model.log_likelihood(test)
+        print(hyper, loglike)                     
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--basepath', default='/home/ryan/Desktop/') # raw data path
     parser.add_argument('--data', default='data.csv') # already preprocessed data
-    parser.add_argument('--model', choices=['gmm', 'mdn'], default='gmm')
+    parser.add_argument('--model', choices=['model1', 'model2'], default='model1')
     parser.add_argument('--sample', default = None, type=int)
     parser.add_argument('--seed', type = int, default = None)
-    parser.add_argument('--predict', choices=['ptype', 'ploc', 'both'], default='both')
-    parser.add_argument('--hyperparam_opt', action='store_true')
+    parser.add_argument('--predict', choices=['ptype', 'ploc', 'both'], default='ptype')
+    parser.add_argument('--gridsearch', action='store_true')
 
     args = parser.parse_args() 
 
@@ -114,27 +109,28 @@ if __name__ == '__main__':
     if args.sample: 
         pitches = pitches.sample(args.sample, random_state=args.seed)
 
-    if args.hyperparam_opt:
-        train, test = train_test_split(pitches)
-        if args.model == 'gmm': 
-            gmm_hyperopt(train, test)
-        if args.model == 'mdn':
-            mdn_hyperopt(train, test)
+    if args.gridsearch:
+        train, test = train_test_split(pitches, random_state=args.seed)
+        if args.model == 'model1': 
+            model1_hyperopt(train, test)
+        if args.model == 'model2':
+            model2_hyperopt(train, test)
         sys.exit()
- 
-    if args.model == 'gmm':
-        model = GaussianMixtureModel()
-    elif args.model == 'mdn':
-        model = MixtureDensityNetwork(dropout=0.5)
+
+    if args.model == 'model1':
+        if args.predict == 'ptype':
+            model = SimpleCategorical()
+        elif args.predict == 'ploc':
+            model = GaussianMixtureModel()
+    elif args.model == 'model2':
+        if args.predict == 'ptype':
+            model = CategoricalNeuralNetwork()
+        elif args.predict == 'ploc':
+            print('not implemented yet')    
+            sys.exit()
 
     model.fit(pitches)
-    if args.predict == 'ptype':
-        loglike = model.ptype_log_likelihood(pitches)
-    elif args.predict == 'ploc':
-        loglike = 'not implemented yet'
-    else:
-        loglike = model.log_likelihood(pitches)
-
+    loglike = model.log_likelihood(pitches)
     print(loglike)
        
  
