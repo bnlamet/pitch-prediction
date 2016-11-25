@@ -8,25 +8,23 @@ import tensorflow as tf
 from tensorflow.contrib import learn
 from tensorflow.contrib import layers
 
-class MixtureDensityNetwork:
+class CategoricalNeuralNetwork:
 
     def __init__(self, learning_rate = 0.1, 
                         batch_size = 500, 
                         iterations = 5000,
                         player_embedding = 30,
-                        mixture_components = 9, 
                         hidden_layers = [75],
                         dropout = 0.0):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.iterations = iterations
         self.player_embedding = player_embedding
-        self.mixture_components = mixture_components 
         self.hidden_layers = hidden_layers
         self.dropout = dropout
 
-    def __setup_ptype_network(self):
-        self.ptype_network = {}
+    def __setup_network(self):
+        self.network = {}
       
         keep_prob = tf.placeholder(tf.float32)
  
@@ -73,17 +71,14 @@ class MixtureDensityNetwork:
         sess = tf.Session()
         sess.run(init)
 
-        self.ptype_network['keep_prob'] = keep_prob
-        self.ptype_network['cat_batch'] = cat_batch
-        self.ptype_network['real_batch'] = real_batch
-        self.ptype_network['type_batch'] = type_batch
-        self.ptype_network['y_pred'] = y_pred
-        self.ptype_network['loglike'] = loglike
-        self.ptype_network['train_step'] = train_step
-        self.ptype_network['sess'] = sess 
-
-    def __setup_ploc_network(self):
-        pass
+        self.network['keep_prob'] = keep_prob
+        self.network['cat_batch'] = cat_batch
+        self.network['real_batch'] = real_batch
+        self.network['type_batch'] = type_batch
+        self.network['y_pred'] = y_pred
+        self.network['loglike'] = loglike
+        self.network['train_step'] = train_step
+        self.network['sess'] = sess 
 
     def __init_data(self, pitches):
         self.cat_features = ['pitcher_id', 'batter_id', 'away_team', 'home_team', 'year', 'b_stand', 
@@ -107,45 +102,44 @@ class MixtureDensityNetwork:
 
     def fit(self, pitches):
         self.__init_data(pitches) 
-        self.__setup_ptype_network()
-        cat_batch0 = self.ptype_network['cat_batch']
-        real_batch0 = self.ptype_network['real_batch']
-        type_batch0 = self.ptype_network['type_batch']
-        train_step0 = self.ptype_network['train_step']
-        keep_prob0 = self.ptype_network['keep_prob']
-        sess0 = self.ptype_network['sess']
+        self.__setup_network()
+        cat_batch = self.network['cat_batch']
+        real_batch = self.network['real_batch']
+        type_batch = self.network['type_batch']
+        train_step = self.network['train_step']
+        keep_prob = self.network['keep_prob']
+        sess0 = self.network['sess']
 
         for i in range(self.iterations):
             idx = np.random.randint(0, self.pitches.shape[0], self.batch_size)
-            input_data = {  cat_batch0 : self.cat_data[idx,:-1], 
-                            real_batch0 : self.real_data[idx],  
-                            type_batch0 : self.cat_data[idx,-1],
-                            keep_prob0 : 1 - self.dropout }
-            sess0.run(train_step0, feed_dict = input_data)
-
+            input_data = {  cat_batch : self.cat_data[idx,:-1], 
+                            real_batch : self.real_data[idx],  
+                            type_batch : self.cat_data[idx,-1],
+                            keep_prob : 1 - self.dropout }
+            sess0.run(train_step, feed_dict = input_data)
         return None
 
-    def ptype_log_likelihood(self, pitches):
+    def log_likelihood(self, pitches):
         cat_data = np.array(list(self.prep.transform(pitches[self.cat_features])))
         real_data = pitches[self.real_features].values
 
-        cat_batch0 = self.ptype_network['cat_batch']
-        real_batch0 = self.ptype_network['real_batch']
-        type_batch0 = self.ptype_network['type_batch']
-        train_step0 = self.ptype_network['train_step']
-        keep_prob0 = self.ptype_network['keep_prob']
-        loglike0 = self.ptype_network['loglike']
-        sess0 = self.ptype_network['sess']
+        cat_batch = self.network['cat_batch']
+        real_batch = self.network['real_batch']
+        type_batch = self.network['type_batch']
+        train_step = self.network['train_step']
+        keep_prob = self.network['keep_prob']
+        loglike = self.network['loglike']
+        sess = self.network['sess']
  
-        input_data = {  cat_batch0 : cat_data[:, :-1],
-                        real_batch0 : real_data,
-                        type_batch0 : cat_data[:,-1],
-                        keep_prob0 : 1.0 }
+        input_data = {  cat_batch : cat_data[:, :-1],
+                        real_batch : real_data,
+                        type_batch : cat_data[:,-1],
+                        keep_prob : 1.0 }
 
         if False:
-            y_pred = self.ptype_network['y_pred']
-            preds = sess0.run(y_pred, feed_dict = input_data)
+            y_pred = self.network['y_pred']
+            preds = sess.run(y_pred, feed_dict = input_data)
             pdb.set_trace()
 
-        return sess0.run(loglike0, feed_dict = input_data)
+        return sess.run(loglike, feed_dict = input_data)
 
