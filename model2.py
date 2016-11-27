@@ -7,7 +7,7 @@ import sys
 import tensorflow as tf
 from tensorflow.contrib import learn
 from tensorflow.contrib import layers
-import progressbar
+#import progressbar
 
 class CategoricalNeuralNetwork:
 
@@ -111,12 +111,12 @@ class CategoricalNeuralNetwork:
         keep_prob = self.network['keep_prob']
         sess = self.network['sess']
 
-        bar = progressbar.ProgressBar(maxval=self.sweeps, \
-                widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
-        bar.start()
+#        bar = progressbar.ProgressBar(maxval=self.sweeps, \
+#                widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
+#        bar.start()
     
         for i in range(self.sweeps):
-            bar.update(i+1)
+#            bar.update(i+1)
             perm = np.random.permutation(self.pitches.shape[0])
             cat_data = self.cat_data[perm]
             real_data = self.real_data[perm]
@@ -127,7 +127,7 @@ class CategoricalNeuralNetwork:
                                 type_batch : cat_data[start:end,-1],
                                 keep_prob : 1 - self.dropout }
                 sess.run(train_step, feed_dict = input_data)
-        bar.finish()
+#        bar.finish()
 
     def log_likelihood(self, pitches):
         cat_data = np.array(list(self.prep.transform(pitches[self.cat_features])))
