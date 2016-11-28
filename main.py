@@ -2,8 +2,7 @@ import argparse
 from model1 import SimpleCategorical, GaussianMixtureModel
 from model2 import CategoricalNeuralNetwork
 #from gmm import GaussianMixtureModel
-#from mdn import MixtureDensityNetwork
-import datetime as dt
+#from mdn import MixtureDensityNetwork import datetime as dt
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import sys

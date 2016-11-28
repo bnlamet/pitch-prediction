@@ -8,9 +8,9 @@ import tensorflow as tf
 from tensorflow.contrib import learn
 from tensorflow.contrib import layers
 #import progressbar
+tf.logging.set_verbosity(tf.logging.INFO)
 
-class CategoricalNeuralNetwork:
-
+class CategoricalNeuralNetwork: 
     def __init__(self, learning_rate = 0.1, 
                         batch_size = 500, 
                         sweeps = 50,
@@ -35,6 +35,9 @@ class CategoricalNeuralNetwork:
         cat_batch = tf.placeholder(tf.int32, [None, self.n_cat - 1])
         real_batch = tf.placeholder(tf.float32, [None, self.n_real])
         type_batch = tf.placeholder(tf.int32, [None])
+        alpha = tf.placeholder(tf.float32) # learning rate
+
+        n_items = tf.shape(cat_batch)[0]
 
         p_embed = tf.nn.embedding_lookup(p_embeddings, cat_batch[:,0])
         b_embed = tf.nn.embedding_lookup(b_embeddings, cat_batch[:,1])
@@ -48,8 +51,11 @@ class CategoricalNeuralNetwork:
         in_dim = input_layer.get_shape()[1]
 
         def create_variable(shape):
-            return tf.Variable(tf.random_normal(shape, 0.0, 0.1))
+            # heuristic from page 295 of Deep Learning (Goodfellow, Bengio, and Courville)
+            B = tf.sqrt(6.0 / tf.cast(tf.reduce_sum(shape), tf.float32))
+            return tf.Variable(tf.random_uniform(shape, -B, B))
 
+        # + 0.5 to handle the dead units problem with relu activation
         b = [create_variable([self.hidden_layers[0]]) + 0.5]
         W = [tf.Variable(tf.zeros([in_dim, self.hidden_layers[0]]))] # why does only zeros work here?
         hidden = [tf.nn.dropout(tf.nn.relu(tf.matmul(input_layer, W[0]) + b[0]), keep_prob)]
@@ -59,13 +65,22 @@ class CategoricalNeuralNetwork:
             hidden.append(tf.nn.dropout(tf.nn.relu(tf.matmul(hidden[-1], W[-1]) + b[-1]), keep_prob))
        
         W.append(create_variable([self.hidden_layers[-1], self.n_types]))
-        b.append(create_variable([self.n_types]))
+#        b.append(create_variable([self.n_types]))
+        # heuristic #1 from page 297 of Deep Learning
+        b.append(tf.Variable(tf.log(tf.cast(1.0+self.marginals, tf.float32))))
         
         y_pred = tf.nn.softmax(tf.matmul(hidden[-1], W[-1]) + b[-1])
         y_true = tf.one_hot(indices=type_batch, depth=self.n_types, on_value=1.0, off_value=0.0, dtype=tf.float32)
-        
-        loglike = tf.reduce_mean(tf.reduce_sum(y_true * tf.log(y_pred), reduction_indices=[1])) 
-        train_step = tf.train.GradientDescentOptimizer(self.learning_rate).minimize(-loglike)
+
+#        This is in theory the correct way to calculate the cross entropy       
+#        indices = tf.transpose(tf.pack([tf.range(0, n_items), type_batch]))
+#        likelihoods = tf.gather_nd(y_pred, indices) 
+#        loglike = tf.reduce_mean(tf.log(likelihoods))
+ 
+        loglike = tf.reduce_mean(tf.reduce_sum(y_true * tf.log(y_pred + 1.0e-10), reduction_indices=[1])) 
+#        train_step = tf.train.GradientDescentOptimizer(alpha).minimize(-loglike)
+        # Adam is robust to hyperparameter settings (I think)
+        train_step = tf.train.AdamOptimizer().minimize(-loglike)
 
         init = tf.initialize_all_variables()
 
@@ -79,7 +94,8 @@ class CategoricalNeuralNetwork:
         self.network['y_pred'] = y_pred
         self.network['loglike'] = loglike
         self.network['train_step'] = train_step
-        self.network['sess'] = sess 
+        self.network['sess'] = sess
+        self.network['alpha'] = alpha
 
     def __init_data(self, pitches):
         self.cat_features = ['pitcher_id', 'batter_id', 'away_team', 'home_team', 'year', 'b_stand', 
@@ -100,6 +116,7 @@ class CategoricalNeuralNetwork:
         # note 'year' could have larger depth depending on data
         # +1 accounts for possibility of unobserved category
         self.depths = [len(pitches[col].unique())+1 for col in self.cat_features] 
+        self.marginals = np.bincount(self.cat_data[:, -1])
 
     def fit(self, pitches):
         self.__init_data(pitches) 
@@ -110,6 +127,8 @@ class CategoricalNeuralNetwork:
         train_step = self.network['train_step']
         keep_prob = self.network['keep_prob']
         sess = self.network['sess']
+        alpha = self.network['alpha']
+        loglike = self.network['loglike']
 
 #        bar = progressbar.ProgressBar(maxval=self.sweeps, \
 #                widgets=[progressbar.Bar('=', '[', ']'), ' ', progressbar.Percentage()])
@@ -120,13 +139,27 @@ class CategoricalNeuralNetwork:
             perm = np.random.permutation(self.pitches.shape[0])
             cat_data = self.cat_data[perm]
             real_data = self.real_data[perm]
+            # decaying learning rate as suggested by page 287 of Deep Learning
+            if i < 100:
+                alpha_val = (1.0 + i/100.0 + 0.01*i/100.0) * self.learning_rate
+            else:
+                alpha_val = self.learning_rate * 0.01
             for start in range(0, len(perm) - self.batch_size, self.batch_size):
                 end = start + self.batch_size
                 input_data = {  cat_batch : cat_data[start:end,:-1], 
                                 real_batch : real_data[start:end],  
                                 type_batch : cat_data[start:end,-1],
-                                keep_prob : 1 - self.dropout }
+                                keep_prob : 1 - self.dropout,
+                                alpha : alpha_val }
                 sess.run(train_step, feed_dict = input_data)
+            score = sess.run(loglike, feed_dict = { cat_batch : cat_data[:,:-1], 
+                                                  real_batch : real_data,  
+                                                  type_batch : cat_data[:,-1],
+                                                  keep_prob : 1.0 })
+            print(score)
+            if np.isnan(score):
+                pdb.set_trace()
+            
 #        bar.finish()
 
     def log_likelihood(self, pitches):
