@@ -152,13 +152,11 @@ class CategoricalNeuralNetwork:
                                 keep_prob : 1 - self.dropout,
                                 alpha : alpha_val }
                 sess.run(train_step, feed_dict = input_data)
-            score = sess.run(loglike, feed_dict = { cat_batch : cat_data[:,:-1], 
-                                                  real_batch : real_data,  
-                                                  type_batch : cat_data[:,-1],
-                                                  keep_prob : 1.0 })
-            print(score)
-            if np.isnan(score):
-                pdb.set_trace()
+#            score = sess.run(loglike, feed_dict = { cat_batch : cat_data[:,:-1], 
+#                                                  real_batch : real_data,  
+#                                                  type_batch : cat_data[:,-1],
+#                                                  keep_prob : 1.0 })
+#            print(score)
             
 #        bar.finish()
 

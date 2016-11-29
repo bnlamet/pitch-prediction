@@ -8,6 +8,23 @@ from sklearn.model_selection import train_test_split
 import sys
 import itertools
 import random
+import numpy as np
+
+def random_hidden_layers():
+    uniforms = [np.random.uniform(0.0, 3.0)]
+    while uniforms[-1] > 0.67 and len(uniforms) < 6:
+        u = uniforms[-1]
+        uniforms.append(min(3.0, np.random.uniform(0.0, 1.33*u)))
+    return [int(20 * np.exp(u)) for u in uniforms]
+
+def model2_find_structure(train, test):
+    for _ in range(100):
+        hidden_layers = random_hidden_layers()
+        print(hidden_layers)
+        model = CategoricalNeuralNetwork(learning_rate = 1.0, batch_size = 2000, sweeps = 25, player_embedding = 40, hidden_layers = hidden_layers, dropout = 0.1)
+        model.fit(train)
+        loglike = model.log_likelihood(test)
+        print(loglike)
 
 def model1_hyperopt(train, test):
     components = [4, 9, 16, 25, 36]
@@ -21,13 +38,13 @@ def model1_hyperopt(train, test):
         print(hyper, loglike)
 
 def model2_hyperopt(train, test):
-    learning_rates = [0.1, 0.5]
-    batch_sizes = [1000, 5000, 10000]
-    player_embeddings = [10, 20, 30, 40]
-    sweepss = [50, 100, 250, 500]
-    hidden_layerss = [[50], [75], [100], [100,50], [100,75], [100,75,50]]
+    learning_rates = [1.0] # doesn't matter, using Adam
+    batch_sizes = [500, 1000, 2000, 5000]
+    player_embeddings = [20, 30, 40]
+    sweepss = [100]
+    hidden_layerss = [[100,75,50]] #[[50], [75], [100], [100,50], [100,75], [100,75,50]]
     dropouts = [0.1, 0.2, 0.3, 0.4, 0.5]
-    hypers = list(itertools.product(learning_rates, batch_sizes, player_embeddings, sweeps, hidden_layerss, dropouts))
+    hypers = list(itertools.product(learning_rates, batch_sizes, player_embeddings, sweepss, hidden_layerss, dropouts))
     random.shuffle(hypers)
     print('Running Experiments')
     for hyper in hypers:
@@ -73,7 +90,8 @@ if __name__ == '__main__':
         if args.model == 'model1': 
             model1_hyperopt(train, test)
         if args.model == 'model2':
-            model2_hyperopt(train, test)
+            model2_find_structure(train, test)
+#            model2_hyperopt(train, test)
         sys.exit()
 
     if args.model == 'model1':
