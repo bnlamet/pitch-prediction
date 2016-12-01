@@ -199,6 +199,8 @@ class MixtureDensityNetwork:
         self.show_progress = show_progress
 
     def __setup_network(self):
+
+        keep_prob = tf.placeholder(tf.float32)
         p_embeddings = tf.Variable(tf.random_uniform([self.n_pitchers, self.player_embedding], -1.0, 1.0))
         b_embeddings = tf.Variable(tf.random_uniform([self.n_batters, self.player_embedding], -1.0, 1.0))
 
@@ -222,22 +224,32 @@ class MixtureDensityNetwork:
 
         in_dim = input_layer.get_shape()[1]
 
-        W1 = tf.Variable(tf.zeros([in_dim, 75]))
-        b1 = tf.Variable(tf.random_normal([75], 0.0, .01)) + 0.03
+        def create_variable(shape):
+            # heuristic from page 295 of Deep Learning (Goodfellow, Bengio, and Courville)
+            B = tf.sqrt(6.0 / tf.cast(tf.reduce_sum(shape), tf.float32))
+            return tf.Variable(tf.random_uniform(shape, -B, B))
 
-        hidden = tf.nn.relu(tf.matmul(input_layer, W1) + b1)
-
+        # + 0.5 to handle the dead units problem with relu activation
+        b = [tf.Variable(tf.zeros([self.hidden_layers[0]])) + 0.5]
+        W = [tf.Variable(tf.zeros([in_dim, self.hidden_layers[0]]))] # why does only zeros work here?
+        hidden = [tf.nn.dropout(tf.nn.relu(tf.matmul(input_layer, W[0]) + b[0]), keep_prob)]
+        for i in range(1, len(self.hidden_layers)):
+            W.append(create_variable([self.hidden_layers[i-1], self.hidden_layers[i]]))
+            b.append(tf.Variable(tf.zeros([self.hidden_layers[i]]) + 0.5))
+            hidden.append(tf.nn.dropout(tf.nn.relu(tf.matmul(hidden[-1], W[-1]) + b[-1]), keep_prob))
+ 
         n_mixtures = self.mixture_components
-        W2 = tf.Variable(tf.random_normal([75, n_mixtures], 0.0, .01))
-        b2 = tf.Variable(tf.random_normal([n_mixtures], 0.0, .01))
-        W3 = tf.Variable(tf.random_normal([75, n_mixtures*2], 0.0, .01))
-        b3 = tf.Variable(tf.random_normal([n_mixtures*2], 0.0, .01))
-        W4 = tf.Variable(tf.random_normal([75, n_mixtures*2], 0.0, .01))
-        b4 = tf.Variable(tf.random_normal([n_mixtures*2], 0.0, .01))
+        n_hidden = self.hidden_layers[-1]
+        W2 = create_variable([n_hidden, n_mixtures])
+        b2 = tf.Variable(tf.zeros([n_mixtures]))
+        W3 = create_variable([n_hidden, n_mixtures*2])
+        b3 = tf.Variable(tf.zeros([n_mixtures*2]))
+        W4 = create_variable([n_hidden, n_mixtures*2])
+        b4 = tf.Variable(tf.zeros([n_mixtures*2]))
 
-        weights = tf.nn.softmax(tf.matmul(hidden, W2) + b2)
-        means =  tf.reshape(tf.matmul(hidden, W3) + b3, tf.pack([n_items, n_mixtures, 2]))
-        stdevs = tf.reshape(tf.exp(tf.matmul(hidden, W4) + b4), tf.pack([n_items, n_mixtures, 2]))
+        weights = tf.nn.softmax(tf.matmul(hidden[-1], W2) + b2)
+        means = tf.reshape(tf.matmul(hidden[-1], W3) + b3, tf.pack([n_items, n_mixtures, 2]))
+        stdevs = tf.reshape(tf.exp(tf.matmul(hidden[-1], W4)+b4), tf.pack([n_items, n_mixtures, 2]))
 
         def likelihood(i):
             normals = tf.contrib.distributions.MultivariateNormalDiag(means[i], stdevs[i])
@@ -259,6 +271,7 @@ class MixtureDensityNetwork:
         self.network['loglike'] = loglike
         self.network['train_step'] = train_step
         self.network['sess'] = sess
+        self.network['keep_prob'] = keep_prob
 
     def __init_data(self, pitches):
         self.cat_features = ['pitcher_id', 'batter_id', 'away_team', 'home_team', 'year', 'b_stand', 
@@ -290,6 +303,7 @@ class MixtureDensityNetwork:
         train_step = self.network['train_step']
         sess = self.network['sess']
         loglike = self.network['loglike']
+        keep_prob = self.network['keep_prob']
 
         for i in range(self.sweeps):
             perm = np.random.permutation(self.pitches.shape[0])
@@ -300,9 +314,10 @@ class MixtureDensityNetwork:
                 end = start + self.batch_size
                 input_data = {  cat_batch : cat_data[start:end], 
                                 real_batch : real_data[start:end],  
-                                loc_batch : loc_data[start:end] }
+                                loc_batch : loc_data[start:end], 
+                                keep_prob : 1.0 - self.dropout }
                 sess.run(train_step, feed_dict = input_data)
- 
+
     def log_likelihood(self, pitches):
         cat_data = np.array(list(self.prep.transform(pitches[self.cat_features])))
         real_data = pitches[self.real_features].values
@@ -314,10 +329,12 @@ class MixtureDensityNetwork:
         train_step = self.network['train_step']
         loglike = self.network['loglike']
         sess = self.network['sess']
+        keep_prob = self.network['keep_prob']
  
         input_data = {  cat_batch : cat_data,
                         real_batch : real_data,
-                        type_batch : loc_data }
+                        loc_batch : loc_data,
+                        keep_prob : 1.0 }
 
         return sess.run(loglike, feed_dict = input_data)
 

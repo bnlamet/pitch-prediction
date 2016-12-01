@@ -10,7 +10,6 @@ class SimpleCategorical:
  
     def __init__(self, alpha = 1.0):
         self.alpha = alpha
-        self.ptypes = {} # self.ptypes[pitcher_id] = # observations, pitch type normalized count
 
     def fit(self, pitches):
         self.prior = pitches.type.value_counts(normalize=True)
@@ -57,11 +56,9 @@ class GaussianMixtureModel:
         return model
 
     def log_likelihood(self, pitches):
-        # note: this mutates data frame
         loglike = 0.0
         for idx, group in pitches.groupby(['pitcher_id', 'type']):
             points = group[['px', 'pz']].values
-            c = self.counts[idx]
             if idx in self.models:
                 A = self.models[idx].score_samples(points)
                 B = self.priors[idx[1]].score_samples(points)

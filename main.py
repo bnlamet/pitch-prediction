@@ -96,7 +96,7 @@ if __name__ == '__main__':
         if args.predict == 'ptype':
             model = SimpleCategorical()
         elif args.predict == 'ploc':
-            model = GaussianMixtureModel()
+            model = GaussianMixtureModel() # -2.62724153634
     elif args.model == 'model2':
         if args.predict == 'ptype':
 #            model = CategoricalNeuralNetwork(learning_rate = 0.1, batch_size = 1000, sweeps=100, player_embedding = 40, hidden_layers = [250, 300, 100, 60, 33], dropout = 0.1)
