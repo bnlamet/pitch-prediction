@@ -1,8 +1,6 @@
 import argparse
 from model1 import SimpleCategorical, GaussianMixtureModel
-from model2 import CategoricalNeuralNetwork
-#from gmm import GaussianMixtureModel
-#from mdn import MixtureDensityNetwork import datetime as dt
+from model2 import CategoricalNeuralNetwork, MixtureDensityNetwork
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import sys
@@ -101,10 +99,10 @@ if __name__ == '__main__':
             model = GaussianMixtureModel()
     elif args.model == 'model2':
         if args.predict == 'ptype':
-            model = CategoricalNeuralNetwork(learning_rate = 0.1, batch_size = 1000, sweeps=100, player_embedding = 30, hidden_layers = [100, 75, 50], dropout = 0.1)
+#            model = CategoricalNeuralNetwork(learning_rate = 0.1, batch_size = 1000, sweeps=100, player_embedding = 40, hidden_layers = [250, 300, 100, 60, 33], dropout = 0.1)
+            model = CategoricalNeuralNetwork(show_progress=True)
         elif args.predict == 'ploc':
-            print('not implemented yet')    
-            sys.exit()
+            model = MixtureDensityNetwork()
 
     model.fit(train)
     loglike = model.log_likelihood(test)
