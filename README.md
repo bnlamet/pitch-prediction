@@ -7,12 +7,16 @@ We develop models to characterize P_C(Type) and P_C(Location | Type) or the cont
 Currently, we aim to create at least 3 models:
 
 Model 1: The Baseline
+
 Assume P_C(Type) and P_C(Location | Type) only depends on the pitcher (the other contextual information is irrelevant).  It is well understood how to model these two distributions, and there is enoughd data for most pitchers to construct these models. e) P_C(Type) can be modeled as a Categorical distribution while P_C(Location | Type) can be modeled approximately as a Gaussian Mixture Model.  
 
 Model 2: Feed Forward Neural Networks
+
 Modeling P_C(Type) easy to do with a neural network.  We model P_C(Location | Type) with a Mixture Density Network, or a feed forward neural network where the output neurons are used as parameters to a gaussian mixture model.  
 
 Model 3: Recurrent Neural Network
+
 Leverage additional temporal information such as past pitches using a recurrent neural network.
+
 
 More information can be found in [here](https://docs.google.com/presentation/d/1AwiTHp89OIioVCS9c_Y6mDCBYJC9exFepivH6TePBBk/edit?usp=sharing).
