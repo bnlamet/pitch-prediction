@@ -102,7 +102,7 @@ if __name__ == '__main__':
 #            model = CategoricalNeuralNetwork(learning_rate = 0.1, batch_size = 1000, sweeps=100, player_embedding = 40, hidden_layers = [250, 300, 100, 60, 33], dropout = 0.1)
             model = CategoricalNeuralNetwork(show_progress=True)
         elif args.predict == 'ploc':
-            model = MixtureDensityNetwork()
+            model = MixtureDensityNetwork(hidden_layers=[256, 256], batch_size = 2000, player_embedding = 40, dropout = 0.1, show_progress=True)
 
     model.fit(train)
     loglike = model.log_likelihood(test)

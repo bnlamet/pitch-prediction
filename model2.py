@@ -141,7 +141,7 @@ class CategoricalNeuralNetwork:
             else:
                 alpha_val = self.learning_rate * 0.01
             for start in range(0, len(perm) - self.batch_size, self.batch_size):
-                end = start + self.batch_size
+                end = start + self.batch_size 
                 input_data = {  cat_batch : cat_data[start:end,:-1], 
                                 real_batch : real_data[start:end],  
                                 type_batch : cat_data[start:end,-1],
@@ -215,7 +215,6 @@ class MixtureDensityNetwork:
 
         p_embed = tf.nn.embedding_lookup(p_embeddings, pitchers)
         b_embed = tf.nn.embedding_lookup(b_embeddings, batters)
-
         inputs = [p_embed, b_embed, real_batch]
         for i in range(2, self.n_cat):
             inputs.append(tf.one_hot(cat_batch[:,i], depth=self.depths[i],
@@ -317,6 +316,14 @@ class MixtureDensityNetwork:
                                 loc_batch : loc_data[start:end], 
                                 keep_prob : 1.0 - self.dropout }
                 sess.run(train_step, feed_dict = input_data)
+            if self.show_progress:
+                score = sess.run(loglike, feed_dict = { cat_batch : cat_data,
+                                                        real_batch : real_data,
+                                                        loc_batch : loc_data,
+                                                        keep_prob : 1.0 })
+                print(score)
+                    
+    
 
     def log_likelihood(self, pitches):
         cat_data = np.array(list(self.prep.transform(pitches[self.cat_features])))
