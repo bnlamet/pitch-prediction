@@ -72,7 +72,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', choices=['model1', 'model2'], default='model1')
     parser.add_argument('--sample', default = None, type=int)
     parser.add_argument('--seed', type = int, default = None)
-    parser.add_argument('--predict', choices=['ptype', 'ploc', 'both'], default='ptype')
+    parser.add_argument('--predict', choices=['ptype', 'ploc'], default='ptype')
     parser.add_argument('--gridsearch', action='store_true')
 
     args = parser.parse_args() 
@@ -102,7 +102,7 @@ if __name__ == '__main__':
 #            model = CategoricalNeuralNetwork(learning_rate = 0.1, batch_size = 1000, sweeps=100, player_embedding = 40, hidden_layers = [250, 300, 100, 60, 33], dropout = 0.1)
             model = CategoricalNeuralNetwork(show_progress=True)
         elif args.predict == 'ploc':
-            model = MixtureDensityNetwork(hidden_layers=[256, 256], batch_size = 2000, player_embedding = 40, dropout = 0.1, show_progress=True)
+            model = MixtureDensityNetwork(hidden_layers=[256, 256], batch_size = 2000, player_embedding = 40, dropout = 0.1, sweeps = 50, show_progress=True)
 
     model.fit(train)
     loglike = model.log_likelihood(test)
