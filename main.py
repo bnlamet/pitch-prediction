@@ -3,7 +3,7 @@ from model1 import SimpleCategorical, GaussianMixtureModel
 from model2 import CategoricalNeuralNetwork, MixtureDensityNetwork
 import pandas as pd
 from sklearn.model_selection import train_test_split
-import sys
+import sys 
 import itertools
 import random
 import numpy as np
@@ -25,12 +25,12 @@ def model2_find_structure(train, test):
         print(loglike)
 
 def model1_hyperopt(train, test):
-    components = [4, 9, 16, 25, 36]
+    components = [4, 9, 16, 25, 36, 49]
     alphas = [1.0, 2.0, 4.0, 8.0, 16.0, 100000.0]
-    hypers = list(itertools.product(alphas))
+    hypers = list(itertools.product(alphas, components))
     random.shuffle(hypers)
     for hyper in hypers:
-        model = SimpleCategorical(alpha = hyper[0])
+        model = GaussianMixtureModel(alpha = hyper[0], components = hyper[1])
         model.fit(train)
         loglike = model.log_likelihood(test)
         print(hyper, loglike)
