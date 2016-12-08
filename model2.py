@@ -305,7 +305,7 @@ class MixtureDensityNetwork:
         loglike = tf.reduce_mean(tf.log(likelihoods))
 
         train_step = tf.train.AdamOptimizer().minimize(-loglike)
-        init = tf.initialize_all_variables()
+        init = tf.global_variables_initializer()
 
         sess = tf.Session()
         sess.run(init)

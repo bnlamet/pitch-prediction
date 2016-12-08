@@ -67,17 +67,19 @@ def model2_randsearch(train, test, tests=100):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--basepath', default='/home/ryan/Desktop/') # raw data path
     parser.add_argument('--data', default='data.csv') # already preprocessed data
     parser.add_argument('--model', choices=['model1', 'model2'], default='model1')
-    parser.add_argument('--sample', default = None, type=int)
-    parser.add_argument('--seed', type = int, default = None)
+    parser.add_argument('--sample', default=None, type=int)
+    parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--predict', choices=['ptype', 'ploc'], default='ptype')
     parser.add_argument('--gridsearch', action='store_true')
+    parser.add_argument('--batch_size', type=int, default=10)
+    parser.add_argument('--dropout', type=float, default=0.1)
+    parser.add_argument('--mixture_components', type=int, default=10)
 
     args = parser.parse_args() 
 
-    pitches = pd.read_csv(args.data) if args.data else load_data(args.basepath)
+    pitches = pd.read_csv(args.data)
    
     if args.sample: 
         pitches = pitches.sample(args.sample, random_state=args.seed)
@@ -102,10 +104,9 @@ if __name__ == '__main__':
 #            model = CategoricalNeuralNetwork(learning_rate = 0.1, batch_size = 1000, sweeps=100, player_embedding = 40, hidden_layers = [250, 300, 100, 60, 33], dropout = 0.1)
             model = CategoricalNeuralNetwork(show_progress=True)
         elif args.predict == 'ploc':
-            model = MixtureDensityNetwork(mixture_components=10, hidden_layers=[256, 128, 64], batch_size = 2000, player_embedding = 50, dropout = 0.1, show_progress=True)
+            print("{'mixture_components' : %d, 'batch_size' : %d, 'dropout' : %f}" % (args.mixture_components, args.batch_size, args.dropout))
+            model = MixtureDensityNetwork(mixture_components=args.mixture_components, hidden_layers=[256, 128, 64], batch_size=args.batch_size, player_embedding=50, dropout=args.dropout, show_progress=True)
 
     model.fit(train)
     loglike = model.log_likelihood(test)
     print(loglike)
-       
- 
