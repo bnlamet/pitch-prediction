@@ -379,9 +379,6 @@ class MixtureDensityNetwork:
                 best_sweeps = sweep
                 best_score = score
 
-        if self.show_progress:
-            print('Stopped Early... retraining on all data')
-
         sess = tf.Session()
         self.network['sess'] = sess
         sess.run(self.network['init'])
