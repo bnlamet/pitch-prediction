@@ -318,6 +318,7 @@ class MixtureDensityNetwork:
         self.network['train_step'] = train_step
         self.network['sess'] = sess
         self.network['keep_prob'] = keep_prob
+        self.network['init'] = init
 
     def __init_data(self, pitches):
         self.cat_features = ['pitcher_id', 'batter_id', 'away_team', 'home_team', 'year', 'b_stand', 
@@ -363,7 +364,7 @@ class MixtureDensityNetwork:
 
         valid_data = { self.network['cat_batch'] : self.cat_data[valid],
                         self.network['real_batch'] : self.real_data[valid],
-                        self.network['type_batch'] : self.type_data[valid],
+						self.network['loc_batch'] : self.loc_data[valid], 
                         self.network['keep_prob'] : 1.0 }
 
         while sweep <= best_sweeps + self.patience:
