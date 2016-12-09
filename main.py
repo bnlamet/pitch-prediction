@@ -73,7 +73,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--predict', choices=['ptype', 'ploc'], default='ptype')
     parser.add_argument('--gridsearch', action='store_true')
-    parser.add_argument('--batch_size', type=int, default=10)
+    parser.add_argument('--batch_size', type=int, default=2000)
     parser.add_argument('--dropout', type=float, default=0.1)
     parser.add_argument('--mixture_components', type=int, default=10)
 

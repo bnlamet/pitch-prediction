@@ -316,5 +316,10 @@ learning rate (not used), batch size, player embedding, sweeps, hidden layers, d
 -1.16998
 
 MixtureDensityNetwork
-{'mixture_components' : 10, 'batch_size' : 2000, 'dropout' : 0.1}
+{'mixture_components' : 10, 'batch_size' : 2000, 'dropout' : 0.100000}
 -2.28309
+{'mixture_components' : 10, 'batch_size' : 5000, 'dropout' : 0.100000}
+-2.28426
+{'mixture_components' : 10, 'batch_size' : 1000, 'dropout' : 0.100000}
+-2.28424
+{'mixture_components' : 10, 'batch_size' : 2000, 'dropout' : 0.200000}
