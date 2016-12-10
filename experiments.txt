@@ -323,3 +323,5 @@ MixtureDensityNetwork
 {'mixture_components' : 10, 'batch_size' : 1000, 'dropout' : 0.100000}
 -2.28424
 {'mixture_components' : 10, 'batch_size' : 2000, 'dropout' : 0.200000}
+-2.28592
+{'mixture_components' : 12, 'batch_size' : 2000, 'dropout' : 0.100000}
