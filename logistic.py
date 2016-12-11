@@ -15,7 +15,7 @@ class Logistic:
     def fit(self, pitches):
         self.transformer = Transformer(pitches, self.sparse, self.dense, min_points=10)
         sparse_data = self.transformer.pandas_to_scipy(pitches)
-        self.model = LogisticRegression(solver='lbfgs', multi_class='multinomial', n_jobs=-1, max_iter=1000)
+        self.model = LogisticRegression(solver='sag', multi_class='multinomial', n_jobs=-1, max_iter=100000)
         self.model.fit(sparse_data, pitches.type) 
 
     def log_likelihood(self, pitches):
