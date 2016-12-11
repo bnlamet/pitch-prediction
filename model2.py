@@ -8,16 +8,15 @@ import tensorflow as tf
 from tensorflow.contrib import learn
 from tensorflow.contrib import layers
 from sklearn.model_selection import train_test_split
-# tf.logging.set_verbosity(tf.logging.INFO)
 
-class CategoricalNeuralNetwork: 
-    def __init__(self, learning_rate = 0.1, 
-                        batch_size = 500, 
+class CategoricalNeuralNetwork:
+    def __init__(self, learning_rate = 0.1,
+                        batch_size = 500,
                         sweeps = 50,
                         player_embedding = 30,
                         hidden_layers = [75],
                         dropout = 0.0,
-                        activation = 'relu', 
+                        activation = 'relu',
                         patience = 8,
                         show_progress = False):
         self.learning_rate = learning_rate
@@ -36,13 +35,13 @@ class CategoricalNeuralNetwork:
             self.activation = tf.nn.tanh
 
     def __setup_network(self):
-      
+
         keep_prob = tf.placeholder(tf.float32)
         p_embeddings = tf.Variable(tf.random_uniform([self.n_pitchers, self.player_embedding], -1.0, 1.0))
         b_embeddings = tf.Variable(tf.random_uniform([self.n_batters, self.player_embedding], -1.0, 1.0))
 
         pitcher_batch = tf.placeholder(tf.int32, [None])
-        batter_batch = tf.placeholder(tf.int32, [None]) 
+        batter_batch = tf.placeholder(tf.int32, [None])
         cat_batch = tf.placeholder(tf.float32, [None, self.cat_width]) # one hot encoding
         real_batch = tf.placeholder(tf.float32, [None, self.n_real])
         type_batch = tf.placeholder(tf.float32, [None, self.n_types]) # one hot encoding
@@ -52,7 +51,7 @@ class CategoricalNeuralNetwork:
 
         p_embed = tf.nn.embedding_lookup(p_embeddings, pitcher_batch)
         b_embed = tf.nn.embedding_lookup(b_embeddings, batter_batch)
-       
+
         input_layer = tf.concat(concat_dim=1, values=[p_embed, b_embed, real_batch, cat_batch])
 #        for i in range(2, self.n_cat-1):
 #            inputs.append(tf.one_hot(cat_batch[:,i], depth=self.depths[i],on_value=1.0, off_value=0.0, dtype=tf.float32))
@@ -74,20 +73,20 @@ class CategoricalNeuralNetwork:
             W.append(create_variable([self.hidden_layers[i-1], self.hidden_layers[i]]))
             b.append(create_variable([self.hidden_layers[i]]) + 0.5)
             hidden.append(tf.nn.dropout(self.activation(tf.matmul(hidden[-1], W[-1]) + b[-1]), keep_prob))
-       
+
         W.append(create_variable([self.hidden_layers[-1], self.n_types]))
         # heuristic #1 from page 297 of Deep Learning
         b.append(tf.Variable(tf.log(tf.cast(1.0+self.marginals, tf.float32))))
-        
+
         type_pred = tf.nn.softmax(tf.matmul(hidden[-1], W[-1]) + b[-1])
 #        y_true = tf.one_hot(indices=type_batch, depth=self.n_types, on_value=1.0, off_value=0.0, dtype=tf.float32)
 
-#        This is in theory the correct way to calculate the cross entropy       
+#        This is in theory the correct way to calculate the cross entropy
 #        indices = tf.transpose(tf.pack([tf.range(0, n_items), type_batch]))
-#        likelihoods = tf.gather_nd(y_pred, indices) 
+#        likelihoods = tf.gather_nd(y_pred, indices)
 #        loglike = tf.reduce_mean(tf.log(likelihoods))
- 
-        loglike = tf.reduce_mean(tf.reduce_sum(type_batch * tf.log(type_pred + 1.0e-10), reduction_indices=[1])) 
+
+        loglike = tf.reduce_mean(tf.reduce_sum(type_batch * tf.log(type_pred + 1.0e-10), reduction_indices=[1]))
         # Adam is robust to hyperparameter settings (I think)
         train_step = tf.train.AdamOptimizer().minimize(-loglike)
 
@@ -115,8 +114,8 @@ class CategoricalNeuralNetwork:
         return ans
 
     def __init_data(self, pitches):
-        self.cat_features = ['pitcher_id', 'batter_id', 'away_team', 'home_team', 'year', 'b_stand', 
-                        'p_throws', 'inning_half', 'batter_team', 'pitcher_team', 
+        self.cat_features = ['pitcher_id', 'batter_id', 'away_team', 'home_team', 'year', 'b_stand',
+                        'p_throws', 'inning_half', 'batter_team', 'pitcher_team',
                         'order', 'weekday', 'month', 'balls', 'strikes', 'type']
         self.real_features = ['night', 'inning', 'order', 'home', 'weekday',
                         'month', 'balls', 'strikes', 'sz_top', 'sz_bot']
@@ -127,7 +126,7 @@ class CategoricalNeuralNetwork:
         self.real_data = pitches[self.real_features].values
         self.n_cat = len(self.cat_features)
         self.n_real = len(self.real_features)
-        self.depths = [len(pitches[col].unique())+1 for col in self.cat_features] 
+        self.depths = [len(pitches[col].unique())+1 for col in self.cat_features]
         self.type_onehot = self.one_hot(self.cat_data[:,-1], self.depths[-1])
         self.cat_onehot = np.concatenate([self.one_hot(self.cat_data[:,i], self.depths[i]) for i in range(2, self.n_cat-1)], axis=1)
         self.pitcher_data = self.cat_data[:, 0]
@@ -138,7 +137,7 @@ class CategoricalNeuralNetwork:
         self.cat_width = self.cat_onehot.shape[1]
        # note 'year' could have larger depth depending on data
         # +1 accounts for possibility of unobserved category
-        self.marginals = np.bincount(self.cat_data[:, -1]) 
+        self.marginals = np.bincount(self.cat_data[:, -1])
 
     def training_sweep(self, perm):
         sess = self.network['sess']
@@ -154,14 +153,14 @@ class CategoricalNeuralNetwork:
             sess.run(self.network['train_step'], feed_dict = input_data)
 
     def fit(self, pitches):
-        self.__init_data(pitches) 
+        self.__init_data(pitches)
         self.__setup_network()
 
-        sess = self.network['sess'] 
+        sess = self.network['sess']
         train, valid = train_test_split(np.arange(self.pitches.shape[0]))
         sweep = 0
         best_sweeps = 0
-        best_score = -np.inf 
+        best_score = -np.inf
 
         valid_data = { self.network['cat_batch'] : self.cat_onehot[valid],
                         self.network['real_batch'] : self.real_data[valid],
@@ -214,7 +213,7 @@ class CategoricalNeuralNetwork:
         keep_prob = self.network['keep_prob']
         loglike = self.network['loglike']
         sess = self.network['sess']
- 
+
         input_data = {  cat_batch : cat_onehot,
                         real_batch : real_data,
                         type_batch : type_onehot,
@@ -225,13 +224,13 @@ class CategoricalNeuralNetwork:
         return sess.run(loglike, feed_dict = input_data)
 
 
-class MixtureDensityNetwork: 
-    def __init__(self, learning_rate = 0.1, 
-                        batch_size = 500, 
+class MixtureDensityNetwork:
+    def __init__(self, learning_rate = 0.1,
+                        batch_size = 500,
                         sweeps = 50,
                         player_embedding = 30,
                         hidden_layers = [75],
-                        dropout = 0.0, 
+                        dropout = 0.0,
                         mixture_components=16,
                         patience = 5,
                         show_progress = False):
@@ -283,7 +282,7 @@ class MixtureDensityNetwork:
             W.append(create_variable([self.hidden_layers[i-1], self.hidden_layers[i]]))
             b.append(tf.Variable(tf.zeros([self.hidden_layers[i]]) + 0.5))
             hidden.append(tf.nn.dropout(tf.nn.relu(tf.matmul(hidden[-1], W[-1]) + b[-1]), keep_prob))
- 
+
         n_mixtures = self.mixture_components
         n_hidden = self.hidden_layers[-1]
         W2 = create_variable([n_hidden, n_mixtures])
@@ -321,8 +320,8 @@ class MixtureDensityNetwork:
         self.network['init'] = init
 
     def __init_data(self, pitches):
-        self.cat_features = ['pitcher_id', 'batter_id', 'away_team', 'home_team', 'year', 'b_stand', 
-                        'p_throws', 'inning_half', 'batter_team', 'pitcher_team', 
+        self.cat_features = ['pitcher_id', 'batter_id', 'away_team', 'home_team', 'year', 'b_stand',
+                        'p_throws', 'inning_half', 'batter_team', 'pitcher_team',
                         'order', 'weekday', 'month', 'balls', 'strikes', 'type']
         self.real_features = ['night', 'inning', 'order', 'home', 'weekday',
                         'month', 'balls', 'strikes', 'sz_top', 'sz_bot']
@@ -339,32 +338,32 @@ class MixtureDensityNetwork:
         self.n_real = len(self.real_features)
         # note 'year' could have larger depth depending on data
         # +1 accounts for possibility of unobserved category
-        self.depths = [len(pitches[col].unique())+1 for col in self.cat_features] 
+        self.depths = [len(pitches[col].unique())+1 for col in self.cat_features]
 
     def training_sweep(self, perm):
         sess = self.network['sess']
         for start in range(0, perm.size - self.batch_size, self.batch_size):
             end = start + self.batch_size
             idx = perm[start:end]
-            input_data = {  self.network['cat_batch'] : self.cat_data[idx], 
-                            self.network['real_batch'] : self.real_data[idx],  
-                            self.network['loc_batch'] : self.loc_data[idx], 
+            input_data = {  self.network['cat_batch'] : self.cat_data[idx],
+                            self.network['real_batch'] : self.real_data[idx],
+                            self.network['loc_batch'] : self.loc_data[idx],
                             self.network['keep_prob'] : 1.0 - self.dropout }
             sess.run(self.network['train_step'], feed_dict = input_data)
 
     def fit(self, pitches):
-        self.__init_data(pitches) 
+        self.__init_data(pitches)
         self.__setup_network()
 
-        sess = self.network['sess'] 
+        sess = self.network['sess']
         train, valid = train_test_split(np.arange(self.pitches.shape[0]))
         sweep = 0
         best_sweeps = 0
-        best_score = -np.inf 
+        best_score = -np.inf
 
         valid_data = { self.network['cat_batch'] : self.cat_data[valid],
                         self.network['real_batch'] : self.real_data[valid],
-						self.network['loc_batch'] : self.loc_data[valid], 
+						self.network['loc_batch'] : self.loc_data[valid],
                         self.network['keep_prob'] : 1.0 }
 
         while sweep <= best_sweeps + self.patience:
@@ -401,7 +400,7 @@ class MixtureDensityNetwork:
         loglike = self.network['loglike']
         sess = self.network['sess']
         keep_prob = self.network['keep_prob']
- 
+
         input_data = {  cat_batch : cat_data,
                         real_batch : real_data,
                         loc_batch : loc_data,

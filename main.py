@@ -3,7 +3,7 @@ from model1 import SimpleCategorical, GaussianMixtureModel
 from model2 import CategoricalNeuralNetwork, MixtureDensityNetwork
 import pandas as pd
 from sklearn.model_selection import train_test_split
-import sys 
+import sys
 import itertools
 import random
 import numpy as np
@@ -46,7 +46,7 @@ def model2_hyperopt(train, test):
     random.shuffle(hypers)
     print('Running Experiments')
     for hyper in hypers:
-        model = CategoricalNeuralNetwork(learning_rate = hyper[0], 
+        model = CategoricalNeuralNetwork(learning_rate = hyper[0],
                                             batch_size = hyper[1],
                                             sweeps = hyper[3],
                                             player_embedding = hyper[2],
@@ -54,7 +54,7 @@ def model2_hyperopt(train, test):
                                             dropout = hyper[5])
         model.fit(train)
         loglike = model.log_likelihood(test)
-        print(hyper, loglike)                     
+        print(hyper, loglike)
 
 def model2_randsearch(train, test, tests=100):
     for _ in range(tests):
@@ -77,17 +77,17 @@ if __name__ == '__main__':
     parser.add_argument('--dropout', type=float, default=0.1)
     parser.add_argument('--mixture_components', type=int, default=10)
 
-    args = parser.parse_args() 
+    args = parser.parse_args()
 
     pitches = pd.read_csv(args.data)
-   
-    if args.sample: 
+
+    if args.sample:
         pitches = pitches.sample(args.sample, random_state=args.seed)
 
     train, test = train_test_split(pitches, random_state=args.seed)
 
     if args.gridsearch:
-        if args.model == 'model1': 
+        if args.model == 'model1':
             model1_hyperopt(train, test)
         if args.model == 'model2':
             model2_find_structure(train, test)
