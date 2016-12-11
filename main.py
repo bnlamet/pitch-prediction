@@ -1,6 +1,7 @@
 import argparse
 from model1 import SimpleCategorical, GaussianMixtureModel
 from model2 import CategoricalNeuralNetwork, MixtureDensityNetwork
+from logistic import Logistic
 import pandas as pd
 from sklearn.model_selection import train_test_split
 import sys
@@ -68,7 +69,7 @@ def model2_randsearch(train, test, tests=100):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', default='data.csv') # already preprocessed data
-    parser.add_argument('--model', choices=['model1', 'model2'], default='model1')
+    parser.add_argument('--model', choices=['model1', 'model2', 'logistic'], default='model1')
     parser.add_argument('--sample', default=None, type=int)
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--predict', choices=['ptype', 'ploc'], default='ptype')
@@ -106,7 +107,10 @@ if __name__ == '__main__':
         elif args.predict == 'ploc':
             print("{'mixture_components' : %d, 'batch_size' : %d, 'dropout' : %f}" % (args.mixture_components, args.batch_size, args.dropout))
             model = MixtureDensityNetwork(mixture_components=args.mixture_components, hidden_layers=[256, 128, 64], batch_size=args.batch_size, player_embedding=50, dropout=args.dropout, show_progress=True)
+    elif args.model == 'logistic':
+        assert args.predict == 'ptype'
+        model = Logistic()
 
     model.fit(train)
-    loglike = model.log_likelihood(test)
-    print(loglike)
+    print('Training Log Likelihood: ', model.log_likelihood(train))
+    print('Testing Log Likelihood: ', model.log_likelihood(test))
