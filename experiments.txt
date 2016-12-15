@@ -326,3 +326,6 @@ MixtureDensityNetwork
 -2.28592
 {'mixture_components' : 12, 'batch_size' : 2000, 'dropout' : 0.100000}
 -2.28389
+{'mixture_components' : 5, 'batch_size' : 2000, 'dropout' : 0.100000}
+Training Log Likelihood:  -2.24077
+Testing Log Likelihood:  -2.28773
