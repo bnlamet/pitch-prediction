@@ -4,7 +4,8 @@ from scipy import stats
 from sklearn.mixture import GaussianMixture
 import pdb
 import sys
-
+from calibration_curve import plot_curve
+    
 # P(type | C)
 class SimpleCategorical:
  
@@ -17,7 +18,7 @@ class SimpleCategorical:
         self.table = pitches.groupby('pitcher_id') \
                             .apply(lambda sample: sample.type.value_counts()) \
                             .unstack() \
-                            .fillna(0)
+                            .fillna(0)[self.prior.index]
         self.table = self.table + self.alpha*self.prior
         for col in self.table.columns:
             self.table[col] /= (counts + self.alpha)
@@ -31,6 +32,14 @@ class SimpleCategorical:
                 p = self.prior[ptype]
             loglike += len(group) * np.log(p)
         return loglike / pitches.shape[0]
+
+    def calibration_curve(self, pitches):
+        pids = pitches.pitcher_id.values
+        probas = self.table.loc[pids].fillna(self.prior)
+        labels = list(probas.columns)
+        actuals = pitches.type.map(labels.index).values
+        plot_curve(labels, probas.values.transpose(), actuals, 50)
+
 
 # P(x, y | type, C)
 class GaussianMixtureModel:

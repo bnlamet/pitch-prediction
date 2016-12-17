@@ -36,10 +36,11 @@ def plot_curve(labels: list, probas: np.array, actuals: np.array, buckets: int):
     axis.set_ylim([-0.05, 1.05])
     axis.legend(loc="lower right")
     axis.set_title('Calibration plots (reliability curve)')
-    for i in range(0, d - 1):
+    for i in range(0, 3):
         y_prob = probas[i]
         y_true = (actuals == i)
         prob_true, prob_pred = calibration_curve(y_true, y_prob, n_bins=buckets)
-        axis.plot(prob_true, prob_pred, "s-", label=labels[i])
+#        axis.plot(prob_true, prob_pred, "s-", label=labels[i])
+        axis.plot(prob_true, prob_pred, ".", label=labels[i])
 
     return fig

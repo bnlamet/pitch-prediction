@@ -8,6 +8,7 @@ import tensorflow as tf
 from tensorflow.contrib import learn
 from tensorflow.contrib import layers
 from sklearn.model_selection import train_test_split
+from calibration_curve import plot_curve
 
 class CategoricalNeuralNetwork:
     def __init__(self, learning_rate = 0.1,
@@ -223,6 +224,34 @@ class CategoricalNeuralNetwork:
 
         return sess.run(loglike, feed_dict = input_data)
 
+    def calibration_curve(self, pitches):
+        cat_data = np.array(list(self.prep.transform(pitches[self.cat_features])))
+        real_data = pitches[self.real_features].values
+        pitcher_data = cat_data[:,0]
+        batter_data = cat_data[:,1]
+        type_onehot = self.one_hot(cat_data[:,-1], self.depths[-1])
+        cat_onehot = np.concatenate([self.one_hot(cat_data[:,i], self.depths[i]) for i in range(2, self.n_cat-1)], axis=1)
+
+        batter_batch = self.network['batter_batch']
+        pitcher_batch = self.network['pitcher_batch']
+        cat_batch = self.network['cat_batch']
+        real_batch = self.network['real_batch']
+        type_batch = self.network['type_batch']
+        train_step = self.network['train_step']
+        keep_prob = self.network['keep_prob']
+        type_pred = self.network['type_pred']
+        sess = self.network['sess']
+
+        input_data = {  cat_batch : cat_onehot,
+                        real_batch : real_data,
+                        type_batch : type_onehot,
+                        batter_batch : batter_data,
+                        pitcher_batch : pitcher_data,
+                        keep_prob : 1.0 }
+
+        probas = sess.run(type_pred, feed_dict = input_data)
+        actual = cat_data[:,-1]       
+        plot_curve(range(actual.max()+1), probas.transpose(), actual, 50)
 
 class MixtureDensityNetwork:
     def __init__(self, learning_rate = 0.1,

@@ -8,6 +8,7 @@ import sys
 import itertools
 import random
 import numpy as np
+import matplotlib.pyplot as plt
 
 def random_hidden_layers():
     uniforms = [np.random.uniform(0.0, 3.0)]
@@ -114,3 +115,6 @@ if __name__ == '__main__':
     model.fit(train)
     print('Training Log Likelihood: ', model.log_likelihood(train))
     print('Testing Log Likelihood: ', model.log_likelihood(test))
+    if args.predict == 'ptype':
+        model.calibration_curve(test)
+        plt.show()
