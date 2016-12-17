@@ -117,4 +117,3 @@ if __name__ == '__main__':
     print('Testing Log Likelihood: ', model.log_likelihood(test))
     if args.predict == 'ptype':
         model.calibration_curve(test)
-        plt.show()
