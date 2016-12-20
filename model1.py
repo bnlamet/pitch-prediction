@@ -19,7 +19,7 @@ class SimpleCategorical:
                             .apply(lambda sample: sample.type.value_counts()) \
                             .unstack() \
                             .fillna(0)[self.prior.index]
-        self.table = self.table + self.alpha*self.prior
+        self.table = self.table + self.alpha * self.prior
         for col in self.table.columns:
             self.table[col] /= (counts + self.alpha)
 

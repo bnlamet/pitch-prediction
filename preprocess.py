@@ -3,10 +3,10 @@ import pandas as pd
 
 def load_data(base):
     games = pd.read_csv(base + 'games.csv').sort_values(by='date')
-    atbats = pd.read_csv(base + 'atbats.csv') 
+    atbats = pd.read_csv(base + 'atbats.csv')
     pitches = pd.read_csv(base + 'pitches.csv')
-    
-    ptypes = ['FF','SL','FT','SI','CH','CU','FC','KC','FS','KN']
+
+    ptypes = ['FF', 'SL', 'FT', 'SI', 'CH', 'CU', 'FC', 'KC', 'FS', 'KN']
     pitches = pitches[pitches.type.map(lambda t: t in ptypes)]
     pitches = pitches[pitches.balls < 4]
 
@@ -21,14 +21,14 @@ def load_data(base):
 
     des = lambda x: 'ball' if x in ball else 'strike' if x in strike else 'foul' if x in foul else 'inplay' if x in inplay else 'error'
     evt = lambda x: 'out' if x in out else 'hit' if x in hit else 'error'
-    
+
     atbats.event = atbats.event.map(evt)
     atbats = atbats[atbats.event != 'error']
 
     pitches.des = pitches.des.map(des)
     pitches = pitches[pitches.des != 'error']
     pitches = pitches[(pitches.x > 0) & (pitches.y > 0)] # is this necessary?
-    
+
     games['night'] = games.time_et.map(lambda s: dt.datetime.strptime(s, '%I:%M %p').time() > dt.time(18,0)).astype(int)
     # games['month'] = games.date.map(lambda s: dt.datetime.strptime(s, '%Y-%m-%d').month)
 
@@ -37,10 +37,10 @@ def load_data(base):
     games['date'] = pd.to_datetime(games.date)
     pitches = pitches[pd.notnull(pitches.type)]
     atbats = games.merge(atbats, on='game_id')
-    
+
     atbats['weekday'] = atbats.date.map(lambda t: t.weekday())
     atbats['month'] = atbats.date.map(lambda t: t.month)
-    
+
     atbats.loc[atbats.home==0, 'batter_team'] = atbats[atbats.home==0].away_team
     atbats.loc[atbats.home==1, 'batter_team'] = atbats[atbats.home==1].home_team
     atbats.loc[atbats.home==0, 'pitcher_team'] = atbats[atbats.home==0].home_team

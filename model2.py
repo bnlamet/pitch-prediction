@@ -14,12 +14,12 @@ class CategoricalNeuralNetwork:
     def __init__(self, learning_rate = 0.1,
                         batch_size = 500,
                         sweeps = 50,
-                        player_embedding = 30,
-                        hidden_layers = [75],
+                        player_embedding = 50,
+                        hidden_layers = [256, 128, 64],
                         dropout = 0.0,
                         activation = 'relu',
                         patience = 8,
-                        show_progress = False):
+                        show_progress = True):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.sweeps = sweeps
@@ -146,11 +146,11 @@ class CategoricalNeuralNetwork:
             end = start + self.batch_size
             idx = perm[start:end]
             input_data = { self.network['cat_batch'] : self.cat_onehot[idx],
-                            self.network['real_batch'] : self.real_data[idx],
-                            self.network['type_batch'] : self.type_onehot[idx],
-                            self.network['batter_batch'] : self.batter_data[idx],
-                            self.network['pitcher_batch'] : self.pitcher_data[idx],
-                            self.network['keep_prob'] : 1 - self.dropout }
+                           self.network['real_batch'] : self.real_data[idx],
+                           self.network['type_batch'] : self.type_onehot[idx],
+                           self.network['batter_batch'] : self.batter_data[idx],
+                           self.network['pitcher_batch'] : self.pitcher_data[idx],
+                           self.network['keep_prob'] : 1 - self.dropout }
             sess.run(self.network['train_step'], feed_dict = input_data)
 
     def fit(self, pitches):
@@ -250,7 +250,7 @@ class CategoricalNeuralNetwork:
                         keep_prob : 1.0 }
 
         probas = sess.run(type_pred, feed_dict = input_data)
-        actual = cat_data[:,-1]       
+        actual = cat_data[:,-1]
         plot_curve(range(actual.max()+1), probas.transpose(), actual, 50)
 
 class MixtureDensityNetwork:
@@ -262,7 +262,7 @@ class MixtureDensityNetwork:
                         dropout = 0.0,
                         mixture_components=16,
                         patience = 5,
-                        show_progress = False):
+                        show_progress = True):
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.sweeps = sweeps

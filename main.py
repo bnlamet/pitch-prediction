@@ -2,6 +2,7 @@ import argparse
 import sys
 import itertools
 import random
+import time
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -15,8 +16,9 @@ def random_hidden_layers():
     uniforms = [np.random.uniform(0.0, 3.0)]
     while uniforms[-1] > 0.67 and len(uniforms) < 6:
         u = uniforms[-1]
-        uniforms.append(min(3.0, np.random.uniform(0.0, 1.33*u)))
+        uniforms.append(min(3.0, np.random.uniform(0.0, 1.33 * u)))
     return [int(20 * np.exp(u)) for u in uniforms]
+
 
 def model2_find_structure(train, test):
     for _ in range(100):
@@ -29,6 +31,7 @@ def model2_find_structure(train, test):
         loglike = model.log_likelihood(test)
         print(loglike)
 
+
 def model1_hyperopt(train, test):
     components = [4, 9, 16, 25, 36, 49]
     alphas = [1.0, 2.0, 4.0, 8.0, 16.0, 100000.0]
@@ -40,12 +43,14 @@ def model1_hyperopt(train, test):
         loglike = model.log_likelihood(test)
         print(hyper, loglike)
 
+
 def model2_hyperopt(train, test):
-    learning_rates = [1.0] # doesn't matter, using Adam
+    learning_rates = [1.0]  # doesn't matter, using Adam
     batch_sizes = [500, 1000, 2000, 5000]
     player_embeddings = [20, 30, 40]
     sweepss = [100]
-    hidden_layerss = [[100, 75, 50]] #[[50], [75], [100], [100,50], [100,75], [100,75,50]]
+    # [[50], [75], [100], [100,50], [100,75], [100,75,50]]
+    hidden_layerss = [[100, 75, 50]]
     dropouts = [0.1, 0.2, 0.3, 0.4, 0.5]
     hypers = list(itertools.product(learning_rates, batch_sizes, player_embeddings, sweepss,
                                     hidden_layerss, dropouts))
@@ -64,15 +69,19 @@ def model2_hyperopt(train, test):
 
 if __name__ == '__main__':
     PARSER = argparse.ArgumentParser()
-    PARSER.add_argument('--data', default='data.csv') # already preprocessed data
-    PARSER.add_argument('--model', choices=['model1', 'model2', 'logistic'], default='model1')
+    # already preprocessed data
+    PARSER.add_argument('--data', default='data.csv')
+    PARSER.add_argument(
+        '--model', choices=['model1', 'model2', 'logistic'], default='model1')
     PARSER.add_argument('--sample', default=None, type=int)
-    PARSER.add_argument('--seed', type=int, default=None)
-    PARSER.add_argument('--predict', choices=['ptype', 'ploc'], default='ptype')
+    PARSER.add_argument('--seed', type=int, default=0)
+    PARSER.add_argument(
+        '--predict', choices=['ptype', 'ploc'], default='ptype')
     PARSER.add_argument('--gridsearch', action='store_true')
     PARSER.add_argument('--batch_size', type=int, default=2000)
     PARSER.add_argument('--dropout', type=float, default=0.1)
     PARSER.add_argument('--mixture_components', type=int, default=10)
+    PARSER.add_argument('--perf', action='store_true')
 
     ARGS = PARSER.parse_args()
 
@@ -80,6 +89,32 @@ if __name__ == '__main__':
 
     if ARGS.sample:
         PITCHES = PITCHES.sample(ARGS.sample, random_state=ARGS.seed)
+
+    if ARGS.perf:
+        assert ARGS.predict == 'ptype'
+        ITRS = 1
+        TIMES = {}
+        LIKELIHOODS = {}
+        for i in range(0, ITRS):
+            TRAIN, TEST = train_test_split(PITCHES, random_state=i)
+            for m in [SimpleCategorical(), CategoricalNeuralNetwork(), Logistic()]:
+                cname = m.__class__.__name__
+                if i == 0:
+                    TIMES[cname] = np.empty(ITRS)
+                    LIKELIHOODS[cname] = np.empty(ITRS)
+                start = time.time()
+                m.fit(TRAIN)
+                end = time.time()
+                m.log_likelihood(TEST)
+                TIMES[cname][i] = end - start
+                LIKELIHOODS[cname][i] = m.log_likelihood(TEST)
+        for m in TIMES:
+            print("%s training time: %f +/- %f, Log Likelihood: %f +/- %f" %
+                  (m, TIMES[m].mean(), TIMES[m].var() * 2,
+                   LIKELIHOODS[m].mean(), LIKELIHOODS[m].var() * 2))
+        print(TIMES)
+        print(LIKELIHOODS)
+        sys.exit()
 
     TRAIN, TEST = train_test_split(PITCHES, random_state=ARGS.seed)
 
@@ -95,20 +130,17 @@ if __name__ == '__main__':
         if ARGS.predict == 'ptype':
             MODEL = SimpleCategorical()
         elif ARGS.predict == 'ploc':
-            MODEL = GaussianMixtureModel() # -2.62724153634
+            MODEL = GaussianMixtureModel()  # -2.62724153634
     elif ARGS.model == 'model2':
         if ARGS.predict == 'ptype':
-            MODEL = CategoricalNeuralNetwork(show_progress=True)
+            MODEL = CategoricalNeuralNetwork()
         elif ARGS.predict == 'ploc':
             MODEL = MixtureDensityNetwork(mixture_components=ARGS.mixture_components,
-                                          hidden_layers=[256, 128, 64], batch_size=ARGS.batch_size,
-                                          player_embedding=50, dropout=ARGS.dropout,
-                                          show_progress=True)
+                                          batch_size=ARGS.batch_size, dropout=ARGS.dropout)
     elif ARGS.model == 'logistic':
         assert ARGS.predict == 'ptype'
         MODEL = Logistic()
 
-    MODEL.fit(TRAIN)
     print('Training Log Likelihood: ', MODEL.log_likelihood(TRAIN))
     print('Testing Log Likelihood: ', MODEL.log_likelihood(TEST))
     if ARGS.predict == 'ptype':
