@@ -19,4 +19,5 @@ Model 3: Recurrent Neural Network
 Leverage additional temporal information such as past pitches using a recurrent neural network.
 
 
-More information can be found in [here](https://docs.google.com/presentation/d/1AwiTHp89OIioVCS9c_Y6mDCBYJC9exFepivH6TePBBk/edit?usp=sharing).
+More information can be found in these [slides](https://docs.google.com/presentation/d/1AwiTHp89OIioVCS9c_Y6mDCBYJC9exFepivH6TePBBk/pub?start=false&loop=false&delayms=60000) or on this [poster](https://docs.google.com/presentation/d/1rEd6RQB1YqbpZqE083pKtQLFnA8uZtbf5K5afWQ5k1U/pub?start=false&loop=false&delayms=3000) or in this [paper](https://drive.google.com/uc?export=download&id=0B6yKzWOvRp0MX2RYRlBGOTdKRnc).
+
